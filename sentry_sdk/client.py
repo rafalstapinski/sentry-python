@@ -23,7 +23,6 @@ from sentry_sdk.consts import (
     VERSION,
     ClientConstructor,
 )
-from sentry_sdk.integrations import setup_integrations
 from sentry_sdk.utils import ContextVar
 from sentry_sdk.sessions import SessionFlusher
 from sentry_sdk.envelope import Envelope
@@ -47,7 +46,7 @@ _client_init_debug = ContextVar("client_init_debug")
 
 
 SDK_INFO = {
-    "name": "sentry.python",  # SDK name will be overridden after integrations have been loaded with sentry_sdk.integrations.setup_integrations()
+    "name": "sentry.python",
     "version": VERSION,
     "packages": [{"name": "pypi:sentry-sdk", "version": VERSION}],
 }
@@ -133,15 +132,9 @@ class _Client(object):
                     )
                 )
 
-            self.integrations = setup_integrations(
-                self.options["integrations"],
-                with_defaults=self.options["default_integrations"],
-                with_auto_enabling_integrations=self.options[
-                    "auto_enabling_integrations"
-                ],
-            )
+            self.integrations = {}
 
-            sdk_name = get_sdk_name(list(self.integrations.keys()))
+            sdk_name = "sentry.python"
             SDK_INFO["name"] = sdk_name
             logger.debug("Setting SDK name to '%s'", sdk_name)
 
@@ -211,7 +204,7 @@ class _Client(object):
                 event[key] = text_type(self.options[key]).strip()
         if event.get("sdk") is None:
             sdk_info = dict(SDK_INFO)
-            sdk_info["integrations"] = sorted(self.integrations.keys())
+            sdk_info["integrations"] = []
             event["sdk"] = sdk_info
 
         if event.get("platform") is None:
